@@ -5,6 +5,8 @@ require("dotenv").config();
 const mongoose = require("mongoose");
 const authRoutes = require("./routes/auth");
 const servicesRoutes = require("./routes/services");
+const userRoutes = require("./routes/profile");
+const blogRoutes = require("./routes/blog");
 
 // Mongo DB
 mongoose
@@ -48,6 +50,8 @@ app.get("/", (req, res) => {
 
 app.use("/api/auth", authRoutes);
 app.use("/api/services", servicesRoutes);
+app.use("/api/users", userRoutes);
+app.use("/api/blogs", blogRoutes);
 
 // Start server
 app.listen(PORT, () => {

@@ -84,13 +84,7 @@ const signIn = async (req, res) => {
 
     res.json({
       token,
-      user: {
-        email: user?.email,
-        firstName: user?.firstName,
-        lastName: user?.lastName,
-        phone: user?.phone,
-        gender: user?.gender,
-      },
+      user: user,
     });
   } catch (err) {
     console.log(`Error logging-in to account: ${err}`);

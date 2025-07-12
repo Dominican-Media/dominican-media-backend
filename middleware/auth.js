@@ -14,6 +14,7 @@ const verifyToken = async (req, res, next) => {
     }
 
     req.user = verified;
+    req.user.status = user?.status;
     next();
   } catch (error) {
     console.log(error, "Check");
@@ -22,7 +23,7 @@ const verifyToken = async (req, res, next) => {
 };
 
 const isAdmin = (req, res, next) => {
-  if (req.user && req.user.role === "admin") {
+  if (req.user && req.user.role === "admin" && req.user.status === "active") {
     next();
   } else {
     return res.status(403).json({ error: "Unauthorized. Admins only." });
@@ -30,7 +31,11 @@ const isAdmin = (req, res, next) => {
 };
 
 const isPresenter = (req, res, next) => {
-  if (req.user && req.user.role === "publisher") {
+  if (
+    req.user &&
+    req.user.role === "publisher" &&
+    req.user.status === "active"
+  ) {
     next();
   } else {
     return res.status(403).json({
@@ -40,7 +45,11 @@ const isPresenter = (req, res, next) => {
 };
 
 const isAuthor = (req, res, next) => {
-  if (req.user && req.user.role === "author") {
+  if (
+    req.user &&
+    (req.user.role === "author" || req.user.role === "admin") &&
+    req.user.status === "active"
+  ) {
     next();
   } else {
     return res

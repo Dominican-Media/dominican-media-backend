@@ -22,6 +22,7 @@ const UserSchema = new mongoose.Schema(
     gender: { type: String, required: false, default: "none" },
     resetPasswordToken: { type: String, required: false },
     resetPasswordExpires: { type: String, required: false },
+    bio: { type: String, required: true },
   },
   { timestamps: true }
 );
