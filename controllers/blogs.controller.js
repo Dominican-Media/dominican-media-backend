@@ -2,6 +2,7 @@ const { uploadFile } = require("../helpers/uploadToCloudinary");
 const { Blogs, BlogCategories, BlogComment } = require("../models/Blogs");
 const slugify = require("slugify");
 const { Users } = require("../models/Users");
+const { toBoolean } = require("../helpers/toBoolean");
 
 const handleCreateBlogItem = async (req, res) => {
   try {
@@ -14,6 +15,7 @@ const handleCreateBlogItem = async (req, res) => {
       instagramUrl,
       xUrl,
       type,
+      isFeatured,
     } = req.body;
     const userId = req.user?.userId;
 
@@ -48,6 +50,20 @@ const handleCreateBlogItem = async (req, res) => {
       }
     }
 
+    if (toBoolean(isFeatured) === true) {
+      if (type === "published") {
+        const featuredBlog = await Blogs.findOne({ isFeatured: true });
+        if (featuredBlog) {
+          featuredBlog.isFeatured = false;
+          featuredBlog.save();
+        }
+      } else {
+        return res
+          .status(400)
+          .json({ error: "Only blog items to be published can be featured" });
+      }
+    }
+
     const existingCategories = await BlogCategories.find({
       _id: { $in: categoryArray },
     });
@@ -58,14 +74,12 @@ const handleCreateBlogItem = async (req, res) => {
         .json({ error: "One or more category IDs are invalid." });
     }
 
-    // Upload image
     const blogImageUpload = files?.image?.[0]
       ? await uploadFile(files.image[0].buffer, "blog")
       : null;
 
     const [blogImage] = await Promise.all([blogImageUpload]);
 
-    // Extract URL or secure_url
     const imageUrl = blogImage?.secure_url || blogImage?.url || null;
 
     // Save blog
@@ -81,6 +95,7 @@ const handleCreateBlogItem = async (req, res) => {
       image: imageUrl,
       type,
       user: userId,
+      isFeatured: toBoolean(isFeatured),
     });
 
     await blogItem.save();
@@ -98,14 +113,11 @@ const handleCreateBlogItem = async (req, res) => {
 
 const handleGetBlogItems = async (req, res) => {
   try {
-    const { search = "", type } = req.query;
+    const { search = "", type, page = 1, limit = 10 } = req.query;
     const userId = req.user?.userId;
 
     const user = await Users.findById(userId);
 
-    console.log(user, "Check", userId);
-
-    // Build a query object
     const query = {};
 
     if (user?.role !== "admin") {
@@ -124,12 +136,61 @@ const handleGetBlogItems = async (req, res) => {
       ];
     }
 
-    const blogs = await Blogs.find(query).sort({ createdAt: -1 });
+    const skip = (parseInt(page) - 1) * parseInt(limit);
 
-    res.status(200).json({ blogs });
+    const [blogs, total] = await Promise.all([
+      Blogs.find(query)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(parseInt(limit)),
+      Blogs.countDocuments(query),
+    ]);
+
+    res.status(200).json({
+      blogs,
+      total,
+      page: parseInt(page),
+      totalPages: Math.ceil(total / parseInt(limit)),
+    });
   } catch (error) {
     console.error("Error fetching blogs:", error);
     res.status(500).json({ error: "There was an error retrieving blogs" });
+  }
+};
+
+const handleUserGetBlogItems = async (req, res) => {
+  try {
+    const { search = "", page = 1, limit = 10 } = req.query;
+
+    const query = { type: "published" };
+
+    if (search.trim() !== "") {
+      query.$or = [
+        { title: { $regex: search, $options: "i" } },
+        { content: { $regex: search, $options: "i" } },
+        { description: { $regex: search, $options: "i" } },
+      ];
+    }
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    const [blogs, total] = await Promise.all([
+      Blogs.find(query)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(parseInt(limit)),
+      Blogs.countDocuments(query),
+    ]);
+
+    res.status(200).json({
+      blogs,
+      total,
+      page: parseInt(page),
+      totalPages: Math.ceil(total / parseInt(limit)),
+    });
+  } catch (error) {
+    console.error("Error fetching blogs:", error);
+    res.status(500).json({ error: "There was an error retrieving  blogs" });
   }
 };
 
@@ -141,7 +202,7 @@ const handleGetBlogBySlug = async (req, res) => {
       return res.status(400).json({ error: "There was no slug found" });
     }
 
-    const blogItem = await Blogs.findOne({ slug });
+    const blogItem = await Blogs.findOne({ slug })?.populate("user");
 
     if (!blogItem) {
       return res
@@ -169,6 +230,8 @@ const handleUpdateBlogItem = async (req, res) => {
       facebookUrl,
       instagramUrl,
       xUrl,
+      isFeatured,
+      type,
     } = req.body;
     const files = req.files;
 
@@ -182,6 +245,20 @@ const handleUpdateBlogItem = async (req, res) => {
       return res
         .status(400)
         .json({ error: "No blog item with this slug exists" });
+    }
+
+    if (toBoolean(isFeatured) === true) {
+      if (type === "published") {
+        const featuredBlog = await Blogs.findOne({ isFeatured: true });
+        if (featuredBlog) {
+          featuredBlog.isFeatured = false;
+          featuredBlog.save();
+        }
+      } else {
+        return res
+          .status(400)
+          .json({ error: "Only blog items to be published can be featured" });
+      }
     }
 
     if (files?.image) {
@@ -217,6 +294,7 @@ const handleUpdateBlogItem = async (req, res) => {
     if (facebookUrl) blogItem.facebookUrl = facebookUrl;
     if (instagramUrl) blogItem.instagramUrl = instagramUrl;
     if (xUrl) blogItem.xUrl = xUrl;
+    if (isFeatured) blogItem.isFeatured = toBoolean(isFeatured);
 
     await blogItem.save();
 
@@ -405,7 +483,7 @@ const handleGetCommentsBySlug = async (req, res) => {
 
     const comments = await BlogComment.find({ slug }).sort({ createdAt: -1 });
 
-    return res.status(200).json(comments);
+    return res.status(200).json({ comments });
   } catch (error) {
     console.error("Get comments error:", error);
     return res.status(500).json({ error: "Failed to fetch comments" });
@@ -513,4 +591,5 @@ module.exports = {
   handleUpdateCommentLike,
   handleGetBlogCategories,
   handleToggleBlogItemType,
+  handleUserGetBlogItems,
 };

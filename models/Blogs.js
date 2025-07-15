@@ -56,11 +56,18 @@ const BlogsSchema = new mongoose.Schema(
       default: "published",
     },
     user: {
-      type: [mongoose.Schema.ObjectId],
+      type: mongoose.Schema.ObjectId,
       ref: "Users",
       required: function () {
         return this.type === "published";
       },
+    },
+    isFeatured: {
+      type: Boolean,
+      required: function () {
+        return this.type === "published";
+      },
+      default: false,
     },
   },
   { timestamps: true }

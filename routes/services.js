@@ -13,7 +13,7 @@ const upload = multer({ storage });
 
 const router = express.Router();
 
-router.get("/", verifyToken, isAdmin, handleGetServices);
+router.get("/", handleGetServices);
 
 router.get("/:id", verifyToken, isAdmin, handleGetServiceById);
 

@@ -14,6 +14,7 @@ const {
   handleDeleteBlogCategory,
   handleDeleteComment,
   handleToggleBlogItemType,
+  handleUserGetBlogItems,
 } = require("../controllers/blogs.controller");
 const { verifyToken, isAuthor, isAdmin } = require("../middleware/auth");
 const multer = require("multer");
@@ -32,6 +33,8 @@ router.post(
 
 router.get("/", verifyToken, isAuthor, handleGetBlogItems);
 
+router.get("/user", handleUserGetBlogItems);
+
 router.get("/:slug", handleGetBlogBySlug);
 
 router.patch(
@@ -46,12 +49,7 @@ router.delete("/:slug", verifyToken, isAdmin, handleDeleteBlogItem);
 
 router.post("/category/create", verifyToken, isAuthor, handleCreateCategory);
 
-router.get(
-  "/category/get-categories",
-  verifyToken,
-  isAuthor,
-  handleGetBlogCategories
-);
+router.get("/category/get-categories", handleGetBlogCategories);
 
 router.delete("/category/:id", verifyToken, isAuthor, handleDeleteBlogCategory);
 
