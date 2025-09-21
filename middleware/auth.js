@@ -33,13 +33,13 @@ const isAdmin = (req, res, next) => {
 const isPresenter = (req, res, next) => {
   if (
     req.user &&
-    req.user.role === "publisher" &&
+    (req.user.role === "publisher" || req.user.role === "admin") &&
     req.user.status === "active"
   ) {
     next();
   } else {
     return res.status(403).json({
-      error: "Unauthorized, only publishers can access this respurce",
+      error: "Unauthorized, only publishers can access this resource",
     });
   }
 };

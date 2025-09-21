@@ -7,6 +7,7 @@ const authRoutes = require("./routes/auth");
 const servicesRoutes = require("./routes/services");
 const userRoutes = require("./routes/profile");
 const blogRoutes = require("./routes/blog");
+const showRoutes = require("./routes/shows");
 
 // Mongo DB
 mongoose
@@ -24,6 +25,7 @@ const allowedOrigins = [
   "http://localhost:3000",
   "http://localhost:3001",
   "http://localhost:3002",
+  "http://localhost:3003",
 ];
 
 app.use(
@@ -52,6 +54,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/services", servicesRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/blogs", blogRoutes);
+app.use("/api/shows", showRoutes);
 
 // Start server
 app.listen(PORT, () => {
